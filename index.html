@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<title>Кредитный Калькулятор</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --tg-bg: var(--tg-theme-bg-color, #0f1117);
+  --tg-secondary: var(--tg-theme-secondary-bg-color, #1a1f2e);
+  --tg-text: var(--tg-theme-text-color, #e8eaf0);
+  --tg-hint: var(--tg-theme-hint-color, #6b7280);
+  --tg-link: var(--tg-theme-link-color, #d4a84b);
+  --tg-button: var(--tg-theme-button-color, #d4a84b);
+  --tg-button-text: var(--tg-theme-button-text-color, #000);
+
+  --gold: #d4a84b;
+  --gold-light: #f0c96d;
+  --gold-dim: rgba(212,168,75,0.12);
+  --border: rgba(255,255,255,0.07);
+  --success: #34d399;
+  --danger: #f87171;
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--tg-bg);
+  color: var(--tg-text);
+  font-family: 'Syne', sans-serif;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* ─── HEADER ─── */
+.app-header {
+  padding: 16px 20px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--tg-bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.app-icon {
+  width: 38px; height: 38px;
+  background: var(--gold-dim);
+  border: 1px solid rgba(212,168,75,0.3);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.app-title-wrap { flex: 1; min-width: 0; }
+.app-title {
+  font-size: 15px; font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.app-subtitle {
+  font-size: 11px;
+  color: var(--tg-hint);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.header-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  background: var(--gold-dim);
+  border: 1px solid rgba(212,168,75,0.25);
+  border-radius: 20px;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* ─── CONTENT ─── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px 120px;
+  scrollbar-width: none;
+}
+.content::-webkit-scrollbar { display: none; }
+
+/* ─── SECTION ─── */
+.section {
+  margin-bottom: 12px;
+  background: var(--tg-secondary);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tg-hint);
+  padding: 12px 16px 6px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ─── FIELD ROW ─── */
+.field-row {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  transition: background 0.15s;
+}
+.field-row:last-child { border-bottom: none; }
+.field-row:active { background: rgba(255,255,255,0.03); }
+
+.field-icon {
+  width: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  color: var(--gold);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.field-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 0;
+  min-width: 0;
+}
+.field-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tg-text);
+  line-height: 1.2;
+}
+.field-hint {
+  font-size: 11px;
+  color: var(--tg-hint);
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 2px;
+}
+
+.field-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+input[type="number"] {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--tg-text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 10px;
+  width: 110px;
+  text-align: right;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="number"]:focus {
+  border-color: rgba(212,168,75,0.5);
+  box-shadow: 0 0 0 3px rgba(212,168,75,0.1);
+  background: rgba(212,168,75,0.05);
+}
+input[type="number"]::placeholder { color: rgba(255,255,255,0.2); }
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+.calc-btn {
+  width: 32px; height: 32px;
+  background: var(--gold-dim);
+  border: 1px solid rgba(212,168,75,0.3);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.1s;
+  color: var(--gold);
+}
+.calc-btn:active { transform: scale(0.9); background: rgba(212,168,75,0.25); }
+.calc-btn svg { width: 14px; height: 14px; }
+
+/* ─── SELECT ROW ─── */
+select {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--tg-text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 8px 28px 8px 10px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23d4a84b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  min-width: 130px;
+}
+select option { background: #1a2035; }
+
+/* ─── RESULT CARD ─── */
+.result-section {
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: none;
+  animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.result-section.visible { display: block; }
+
+.result-card {
+  background: linear-gradient(135deg, rgba(212,168,75,0.15) 0%, rgba(212,168,75,0.05) 100%);
+  border: 1px solid rgba(212,168,75,0.3);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.result-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+.result-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.result-label-sm {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 4px;
+}
+.result-amount {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+  line-height: 1;
+}
+
+.result-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.stat-item {
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat-label {
+  font-size: 9px;
+  color: var(--tg-hint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+}
+.c-gold { color: var(--gold-light); }
+.c-red  { color: var(--danger); }
+.c-green{ color: var(--success); }
+
+/* ─── SCHEDULE ─── */
+.schedule-section {
+  margin-bottom: 12px;
+  display: none;
+  animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1) 0.05s both;
+}
+.schedule-section.visible { display: block; }
+
+.schedule-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--tg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.schedule-toggle:active { background: rgba(255,255,255,0.05); }
+.schedule-toggle-left {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 600;
+}
+.schedule-toggle-left span { font-size: 18px; }
+.schedule-chevron {
+  color: var(--tg-hint);
+  transition: transform 0.3s;
+  font-size: 12px;
+}
+.schedule-chevron.open { transform: rotate(180deg); }
+
+.schedule-table-wrap {
+  margin-top: 8px;
+  background: var(--tg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: none;
+}
+.schedule-table-wrap::-webkit-scrollbar { display: none; }
+.schedule-table-wrap.open { display: block; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+thead {
+  position: sticky; top: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 1;
+}
+th {
+  padding: 9px 10px;
+  text-align: right;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tg-hint);
+  border-bottom: 1px solid var(--border);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+}
+th:first-child { text-align: center; }
+tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+tbody tr:last-child { border-bottom: none; }
+td {
+  padding: 9px 10px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--tg-text);
+}
+td:first-child { text-align: center; color: var(--tg-hint); font-size: 10px; }
+
+/* ─── ERROR ─── */
+.error-toast {
+  display: none;
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  background: rgba(248,113,113,0.1);
+  border: 1px solid rgba(248,113,113,0.25);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--danger);
+  font-family: 'JetBrains Mono', monospace;
+  animation: slideUp 0.3s ease both;
+}
+.error-toast.visible { display: flex; align-items: center; gap: 8px; }
+
+/* ─── BOTTOM ACTION ─── */
+.bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--tg-bg) 70%, transparent);
+  display: flex; gap: 10px;
+  z-index: 20;
+}
+.btn-primary {
+  flex: 1;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: var(--radius);
+  padding: 16px;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary:active { transform: scale(0.97); opacity: 0.85; }
+.btn-secondary {
+  background: rgba(255,255,255,0.07);
+  color: var(--tg-hint);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+  white-space: nowrap;
+}
+.btn-secondary:active { transform: scale(0.97); background: rgba(255,255,255,0.1); }
+
+/* ─── ANIMATIONS ─── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Field row animation */
+.section .field-row { animation: fadeIn 0.3s ease both; }
+.section .field-row:nth-child(2) { animation-delay: 0.05s; }
+.section .field-row:nth-child(3) { animation-delay: 0.1s; }
+.section .field-row:nth-child(4) { animation-delay: 0.15s; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div class="app-icon">💰</div>
+  <div class="app-title-wrap">
+    <div class="app-title">Кредитный Калькулятор</div>
+    <div class="app-subtitle">quarterly · loan · calculator</div>
+  </div>
+  <div class="header-badge">v1.0</div>
+</div>
+
+<!-- SCROLLABLE CONTENT -->
+<div class="content">
+
+  <!-- ERROR -->
+  <div class="error-toast" id="errorToast">
+    <span>⚠</span>
+    <span id="errorText"></span>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-section" id="resultSection">
+    <div class="result-card">
+      <div class="result-top">
+        <div>
+          <div class="result-label-sm" id="resultLabel">Квартальный платёж</div>
+          <div class="result-amount" id="resultAmount">—</div>
+        </div>
+        <div style="font-size:28px">📊</div>
+      </div>
+      <div class="result-stats">
+        <div class="stat-item">
+          <div class="stat-value c-gold" id="statTotal">—</div>
+          <div class="stat-label">Итого</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value c-red" id="statInterest">—</div>
+          <div class="stat-label">Проценты</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value c-green" id="statPrincipal">—</div>
+          <div class="stat-label">Долг</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIELDS SECTION -->
+  <div class="section">
+    <div class="section-label">Параметры кредита</div>
+
+    <!-- Loan Amount -->
+    <div class="field-row">
+      <div class="field-icon">$</div>
+      <div class="field-body">
+        <div class="field-name">Сумма кредита</div>
+        <div class="field-hint">Principal amount</div>
+      </div>
+      <div class="field-input-wrap">
+        <input type="number" id="loanAmount" placeholder="100000" inputmode="decimal">
+        <button class="calc-btn" onclick="solve('amount')" title="Рассчитать">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M7 1v12M1 7h12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quarters -->
+    <div class="field-row">
+      <div class="field-icon">#</div>
+      <div class="field-body">
+        <div class="field-name">Кварталов</div>
+        <div class="field-hint">Number of quarters</div>
+      </div>
+      <div class="field-input-wrap">
+        <input type="number" id="quarters" placeholder="20" inputmode="numeric">
+        <button class="calc-btn" onclick="solve('quarters')" title="Рассчитать">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M7 1v12M1 7h12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Rate -->
+    <div class="field-row">
+      <div class="field-icon">%</div>
+      <div class="field-body">
+        <div class="field-name">Годовая ставка</div>
+        <div class="field-hint">Annual interest rate</div>
+      </div>
+      <div class="field-input-wrap">
+        <input type="number" id="rate" placeholder="7.5" inputmode="decimal">
+        <button class="calc-btn" onclick="solve('rate')" title="Рассчитать">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M7 1v12M1 7h12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quarterly Payment -->
+    <div class="field-row">
+      <div class="field-icon">↩</div>
+      <div class="field-body">
+        <div class="field-name">Квартальный платёж</div>
+        <div class="field-hint">Principal & interest</div>
+      </div>
+      <div class="field-input-wrap">
+        <input type="number" id="payment" placeholder="1560" inputmode="decimal">
+        <button class="calc-btn" onclick="solve('payment')" title="Рассчитать">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M7 1v12M1 7h12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPOUNDING SECTION -->
+  <div class="section">
+    <div class="section-label">Начисление процентов</div>
+    <div class="field-row">
+      <div class="field-icon">🔄</div>
+      <div class="field-body">
+        <div class="field-name">Периодичность</div>
+      </div>
+      <div class="field-input-wrap">
+        <select id="compounding">
+          <option value="daily">Ежедневно</option>
+          <option value="monthly">Ежемесячно</option>
+          <option value="quarterly" selected>Ежеквартально</option>
+          <option value="semiannual">Раз в полгода</option>
+          <option value="annual">Ежегодно</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCHEDULE SECTION -->
+  <div class="schedule-section" id="scheduleSection">
+    <div class="schedule-toggle" onclick="toggleSchedule()" id="schedToggle">
+      <div class="schedule-toggle-left">
+        <span>📋</span>
+        <span style="font-size:14px;font-weight:700">График погашения</span>
+      </div>
+      <div class="schedule-chevron" id="schedChevron">▼</div>
+    </div>
+    <div class="schedule-table-wrap" id="schedTableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Платёж</th>
+            <th>%</th>
+            <th>Долг</th>
+            <th>Остаток</th>
+          </tr>
+        </thead>
+        <tbody id="amortBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar">
+  <button class="btn-secondary" onclick="clearAll()">Сброс</button>
+  <button class="btn-primary" onclick="autoSolve()">⚡ Рассчитать</button>
+</div>
+
+<script>
+// ── Telegram Web App init ──
+const twa = window.Telegram?.WebApp;
+if (twa) {
+  twa.ready();
+  twa.expand();
+  twa.enableClosingConfirmation?.();
+}
+
+// ── Math ──
+function effectiveQuarterlyRate(annual, comp) {
+  const r = annual / 100;
+  switch (comp) {
+    case 'daily':      return Math.pow(1 + r/365, 365/4) - 1;
+    case 'monthly':    return Math.pow(1 + r/12, 3) - 1;
+    case 'quarterly':  return r / 4;
+    case 'semiannual': return Math.pow(1 + r/2, 0.5) - 1;
+    case 'annual':     return Math.pow(1 + r, 0.25) - 1;
+    default:           return r / 4;
+  }
+}
+
+function fmtMoney(n) {
+  if (Math.abs(n) >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+  return '$' + n.toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtFull(n) {
+  return '$\u202F' + n.toLocaleString('ru-RU', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+// ── Error / haptic ──
+function showError(msg) {
+  const t = document.getElementById('errorToast');
+  document.getElementById('errorText').textContent = msg;
+  t.classList.add('visible');
+  twa?.HapticFeedback?.notificationOccurred('error');
+  setTimeout(() => t.classList.remove('visible'), 3500);
+}
+function hideError() {
+  document.getElementById('errorToast').classList.remove('visible');
+}
+
+// ── Auto-solve (finds the missing field) ──
+function autoSolve() {
+  const P   = document.getElementById('loanAmount').value;
+  const n   = document.getElementById('quarters').value;
+  const r   = document.getElementById('rate').value;
+  const pmt = document.getElementById('payment').value;
+
+  const empty = [!P, !n, !r, !pmt];
+  const emptyCount = empty.filter(Boolean).length;
+
+  if (emptyCount === 0) { solve('payment'); return; }
+  if (emptyCount > 1)   { showError('Заполните любые 3 поля из 4'); return; }
+
+  if (!P)   solve('amount');
+  else if (!n)   solve('quarters');
+  else if (!r)   solve('rate');
+  else           solve('payment');
+}
+
+// ── Main solve ──
+function solve(target) {
+  hideError();
+  const comp = document.getElementById('compounding').value;
+  const P    = parseFloat(document.getElementById('loanAmount').value);
+  const n    = parseFloat(document.getElementById('quarters').value);
+  const rA   = parseFloat(document.getElementById('rate').value);
+  const pmt  = parseFloat(document.getElementById('payment').value);
+
+  let result, calcP, calcN, calcQ, calcPmt;
+
+  try {
+    if (target === 'payment') {
+      if (isNaN(P)||isNaN(n)||isNaN(rA)) { showError('Укажите сумму, кол-во кварталов и ставку'); return; }
+      calcQ = effectiveQuarterlyRate(rA, comp);
+      result = calcQ===0 ? P/n : P*calcQ*Math.pow(1+calcQ,n)/(Math.pow(1+calcQ,n)-1);
+      document.getElementById('payment').value = result.toFixed(2);
+      calcP=P; calcN=n; calcPmt=result;
+
+    } else if (target === 'amount') {
+      if (isNaN(pmt)||isNaN(n)||isNaN(rA)) { showError('Укажите платёж, кол-во кварталов и ставку'); return; }
+      calcQ = effectiveQuarterlyRate(rA, comp);
+      result = calcQ===0 ? pmt*n : pmt*(1-Math.pow(1+calcQ,-n))/calcQ;
+      document.getElementById('loanAmount').value = result.toFixed(2);
+      calcP=result; calcN=n; calcPmt=pmt;
+
+    } else if (target === 'quarters') {
+      if (isNaN(P)||isNaN(pmt)||isNaN(rA)) { showError('Укажите сумму, платёж и ставку'); return; }
+      calcQ = effectiveQuarterlyRate(rA, comp);
+      if (calcQ===0) result = P/pmt;
+      else {
+        if (pmt <= P*calcQ) { showError('Платёж слишком мал для погашения кредита'); return; }
+        result = -Math.log(1 - P*calcQ/pmt)/Math.log(1+calcQ);
+      }
+      result = Math.ceil(result);
+      document.getElementById('quarters').value = result;
+      calcP=P; calcN=result; calcPmt=pmt;
+
+    } else if (target === 'rate') {
+      if (isNaN(P)||isNaN(n)||isNaN(pmt)) { showError('Укажите сумму, кол-во кварталов и платёж'); return; }
+      let lo=0, hi=10, q=0;
+      for (let i=0;i<250;i++) {
+        q=(lo+hi)/2;
+        const c = q===0 ? P/n : P*q*Math.pow(1+q,n)/(Math.pow(1+q,n)-1);
+        if (c < pmt) lo=q; else hi=q;
+      }
+      result = q*4*100;
+      document.getElementById('rate').value = result.toFixed(4);
+      calcQ=q; calcP=P; calcN=n; calcPmt=pmt;
+    }
+
+    twa?.HapticFeedback?.notificationOccurred('success');
+    displayResult(target, result, calcP, calcN, calcQ ?? effectiveQuarterlyRate(
+      parseFloat(document.getElementById('rate').value)||0,
+      document.getElementById('compounding').value
+    ), calcPmt);
+
+  } catch(e) {
+    showError('Ошибка расчёта. Проверьте введённые данные.');
+  }
+}
+
+// ── Display ──
+const LABELS = {
+  payment:  'Квартальный платёж',
+  amount:   'Сумма кредита',
+  quarters: 'Кол-во кварталов',
+  rate:     'Годовая ставка'
+};
+
+function displayResult(target, result, P, n, q, pmt) {
+  document.getElementById('resultLabel').textContent = LABELS[target];
+
+  if (target === 'quarters')
+    document.getElementById('resultAmount').textContent = result + ' кв.';
+  else if (target === 'rate')
+    document.getElementById('resultAmount').textContent = result.toFixed(4) + '%';
+  else
+    document.getElementById('resultAmount').textContent = fmtFull(result);
+
+  const totalPaid    = pmt * n;
+  const totalInterest = Math.max(0, totalPaid - P);
+  document.getElementById('statTotal').textContent    = fmtMoney(totalPaid);
+  document.getElementById('statInterest').textContent = fmtMoney(totalInterest);
+  document.getElementById('statPrincipal').textContent= fmtMoney(P);
+
+  document.getElementById('resultSection').classList.add('visible');
+  document.getElementById('scheduleSection').classList.add('visible');
+
+  buildSchedule(P, n, q, pmt);
+
+  // Scroll to result
+  setTimeout(() => {
+    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 100);
+}
+
+// ── Amortization ──
+function buildSchedule(P, n, q, pmt) {
+  const tbody = document.getElementById('amortBody');
+  tbody.innerHTML = '';
+  let balance = P;
+  const rows = Math.min(Math.ceil(n), 200);
+  for (let i=1; i<=rows; i++) {
+    const interest   = balance * q;
+    let principal    = pmt - interest;
+    if (i === rows) principal = balance;
+    balance = Math.max(0, balance - principal);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i}</td>
+      <td style="color:var(--gold-light)">${fmtMoney(interest+principal)}</td>
+      <td style="color:var(--danger)">${fmtMoney(interest)}</td>
+      <td style="color:var(--success)">${fmtMoney(principal)}</td>
+      <td>${fmtMoney(balance)}</td>
+    `;
+    tbody.appendChild(tr);
+    if (balance <= 0) break;
+  }
+}
+
+// ── Schedule toggle ──
+let schedOpen = false;
+function toggleSchedule() {
+  schedOpen = !schedOpen;
+  document.getElementById('schedTableWrap').classList.toggle('open', schedOpen);
+  document.getElementById('schedChevron').classList.toggle('open', schedOpen);
+  twa?.HapticFeedback?.impactOccurred('light');
+}
+
+// ── Clear ──
+function clearAll() {
+  ['loanAmount','quarters','rate','payment'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('resultSection').classList.remove('visible');
+  document.getElementById('scheduleSection').classList.remove('visible');
+  schedOpen = false;
+  document.getElementById('schedTableWrap').classList.remove('open');
+  document.getElementById('schedChevron').classList.remove('open');
+  hideError();
+  twa?.HapticFeedback?.impactOccurred('medium');
+}
+
+// ── Keyboard: blur on Enter ──
+document.querySelectorAll('input').forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { inp.blur(); autoSolve(); }
+  });
+});
+</script>
+</body>
+</html>
